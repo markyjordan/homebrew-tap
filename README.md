@@ -19,6 +19,5 @@ brew install markyjordan/tap/<formula>
 
 | Formula | Description | Source | Status | Install |
 | --- | --- | --- | --- | --- |
-| `gitserious` | Semantic Git policy CLI for humans and agents | [markyjordan/gitserious](https://github.com/markyjordan/gitserious) | Prerelease tap prep for `v0.1.0`; release assets and SHA256 values are not published yet | `brew install markyjordan/tap/gitserious` |
-
+| `gitserious` | Semantic Git policy CLI for humans and agents | [markyjordan/gitserious](https://github.com/markyjordan/gitserious) | Awaiting the automated formula PR after the first stable GitHub Release | `brew install markyjordan/tap/gitserious` |
 

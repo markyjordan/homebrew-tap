@@ -1,0 +1,105 @@
+name: Formula CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-formula:
+    name: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - macos-15
+          - macos-15-intel
+          - ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+
+    steps:
+      # actions/checkout@v7.0.0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      # Homebrew/actions/setup-homebrew pinned from master on 2026-08-01.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@5037c6f1012cc5ea0b9f03fedbaf9955ed9e51e0
+
+      - name: Detect published formula
+        id: formula
+        shell: bash
+        run: |
+          if [[ -f Formula/gitserious.rb ]]; then
+            echo 'present=true' >>"$GITHUB_OUTPUT"
+          else
+            echo 'present=false' >>"$GITHUB_OUTPUT"
+            echo 'No published formula yet; passing the one-time tap CI bootstrap.'
+          fi
+
+      - name: Reject placeholder digests
+        if: steps.formula.outputs.present == 'true'
+        shell: bash
+        run: |
+          if grep -F '0000000000000000000000000000000000000000000000000000000000000000' \
+            Formula/gitserious.rb >/dev/null; then
+            echo 'Formula contains a placeholder SHA256.' >&2
+            exit 1
+          fi
+
+      - name: Register checkout as the tap
+        if: steps.formula.outputs.present == 'true'
+        shell: bash
+        run: brew tap markyjordan/tap "$GITHUB_WORKSPACE"
+
+      - name: Style formula
+        if: steps.formula.outputs.present == 'true'
+        run: brew style markyjordan/tap/gitserious
+
+      - name: Audit formula
+        if: steps.formula.outputs.present == 'true'
+        run: brew audit --strict markyjordan/tap/gitserious
+
+      - name: Install exact published binary
+        if: steps.formula.outputs.present == 'true'
+        run: brew install --formula markyjordan/tap/gitserious
+
+      - name: Run formula test
+        if: steps.formula.outputs.present == 'true'
+        run: brew test markyjordan/tap/gitserious
+
+      - name: Smoke-test installed executable
+        if: steps.formula.outputs.present == 'true'
+        run: |
+          "$(brew --prefix)/bin/gitserious"
+
+  formula-ci:
+    name: formula-ci
+    if: always()
+    needs:
+      - test-formula
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Require every supported Homebrew platform
+        env:
+          TEST_RESULT: ${{ needs.test-formula.result }}
+        run: |
+          if [[ "$TEST_RESULT" != success ]]; then
+            echo "Homebrew formula matrix did not pass: ${TEST_RESULT}." >&2
+            exit 1
+          fi
+          echo "Homebrew formula CI passed on Apple Silicon, Intel macOS, and Linux x64."
