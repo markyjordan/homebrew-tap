@@ -70,7 +70,7 @@ jobs:
 
       - name: Audit formula
         if: steps.formula.outputs.present == 'true'
-        run: brew audit --strict markyjordan/tap/gitserious
+        run: brew audit --strict --online markyjordan/tap/gitserious
 
       - name: Install exact published binary
         if: steps.formula.outputs.present == 'true'
