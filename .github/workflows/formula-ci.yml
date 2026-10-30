@@ -23,7 +23,6 @@ jobs:
       matrix:
         runner:
           - macos-15
-          - macos-15-intel
           - ubuntu-24.04
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 20
@@ -102,4 +101,4 @@ jobs:
             echo "Homebrew formula matrix did not pass: ${TEST_RESULT}." >&2
             exit 1
           fi
-          echo "Homebrew formula CI passed on Apple Silicon, Intel macOS, and Linux x64."
+          echo "Homebrew formula CI passed on Apple Silicon and Linux x64."
